@@ -50,6 +50,9 @@ class MainApplication(tk.Frame):
         self.dr_mode = 'ae'
         self.font_size = 18
 
+        print('win: ', win)
+        print('parent: ', parent)
+        
         self.btn_num_joints = Button(parent, text="Select Joints", command=self.select_joints)
         self.btn_num_joints.config(font=("Arial", self.font_size))
         self.btn_num_joints.grid(row=0, column=0, columnspan=2, padx=20, pady=30, sticky='nesw')
@@ -171,6 +174,7 @@ class MainApplication(tk.Frame):
 
     def calibration(self):
         # start calibration dance - collect webcam data
+        print('master: ', self.master)
         self.w = popupWindow(self.master, "You will now start calibration.")
         self.master.wait_window(self.w.top)
         compute_calibration(self.calibPath, self.calib_duration, self.lbl_calib, self.num_joints, self.joints)
@@ -813,6 +817,8 @@ def init_keyb():
     
 def work_keyb():
     global key, equation
+    
+    
     print('workkryb')
     key.title('Keyboard By Jesus')  # title Name
     # Size window size
