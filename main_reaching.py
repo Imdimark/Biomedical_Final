@@ -30,10 +30,10 @@ from compute_bomi_map import Autoencoder, PrincipalComponentAnalysis, compute_va
 
 pyautogui.PAUSE = 0.01  # set fps of cursor to 100Hz ish when mouse_enabled is True
 
+# Global variables initialisation
 
-exp = " "          # global variable 
-key=None
-equation=None
+
+
 
 class MainApplication(tk.Frame):
     """
@@ -42,6 +42,7 @@ class MainApplication(tk.Frame):
 
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
+        global MASTER
         self.parent = parent
         self.calibPath = os.path.dirname(os.path.abspath(__file__)) + "/calib/"
         self.drPath = ''
@@ -49,6 +50,7 @@ class MainApplication(tk.Frame):
         self.joints = np.zeros((5, 1))
         self.dr_mode = 'ae'
         self.font_size = 18
+        MASTER = self.master
 
         self.btn_num_joints = Button(parent, text="Select Joints", command=self.select_joints)
         self.btn_num_joints.config(font=("Arial", self.font_size))
@@ -86,6 +88,8 @@ class MainApplication(tk.Frame):
         self.btn_calib.config(font=("Arial", self.font_size))
         self.btn_calib.grid(row=1, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
         self.calib_duration = 3000
+
+    
 
         # Calibration time remaining
         self.lbl_calib = Label(win, text='Calibration time: ')
@@ -772,44 +776,56 @@ def save_parameters(self, drPath):
 
 # [ADD CODE HERE: check_mouse as function input]
 
-def press(num):
-    global exp, equation
-    exp=exp + str(num)
-    equation.set(exp)
-# end 
 
-# function clear button
 
-def clear():
-    global exp, equation
-    exp = " "
-    equation.set(exp)
+class VirtualKeyboardApplication(tk.Frame):
+    """
+    class that defines 
+    """
 
-# end 
+    def __init__(self, parent, mainTk):
+        tk.Frame.__init__(self, parent)
+        self.parent = parent
+        self.mainTk = mainTk
+        self.font_size = 18
+        self.equation = tk.StringVar()
+        self.exp = " "
 
-# Enter Button Work Next line Function
+        self.btn_q = Button(parent, text="q", command=self.press("q"))
+        self.btn_q.config(font=("Arial", self.font_size))
+        self.btn_q.grid(column=2, row=1, sticky='nesw', padx=(80, 0), pady=(40, 20))
+    
+    # functions to retrieve values of textbox programmatically
 
-def action():
-  global equation  
-  exp = " Next Line : "
-  equation.set(exp)
+    def press(self,num):
+        self.exp=self.exp + str(num)
+        self.equation.set(self.exp)
+    # end 
 
-# end function coding
+    # function clear button
 
-# Tab Button Function 
+    def clear(self):
+        self.exp = " "
+        self.equation.set(self.exp)
 
-def Tab():
-  global equation  
-  exp = " TAB : "
-  equation.set(exp)
+    # end 
+
+    # Enter Button Work Next line Function
+
+    def action(self): 
+        self.exp = " Next Line : "
+        self.equation.set(self.exp)
+
+    # end function coding
+
+    # Tab Button Function 
+
+    def Tab(self): 
+        self.exp = " TAB : "
+        self.equation.set(self.exp)
 
 # END Tab Button Fucntion
-def init_keyb():
-    global key, equation
-    
-    key = tk.Tk()
-    equation = tk.StringVar()
-    print('initkeyb')
+
     
 def work_keyb():
     global key, equation
@@ -828,6 +844,7 @@ def work_keyb():
 
 
     # add all button line wise 
+    
 
     # First Line Button
 
@@ -1023,7 +1040,7 @@ def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
     pygame.init()
 
     # [ADD CODE HERE] get value from checkbox - is mouse enabled? !!!!!!!!!!!!!!!!!!!
-    
+    global MASTER
     m_enabled = mouse_enabled
     flag = True
     ############################################################
@@ -1151,9 +1168,11 @@ def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
             if m_enabled:
                 pyautogui.moveTo(r.crs_x, r.crs_y)
                 if flag:
-                    init_keyb()
+                    newWindow = tk.Toplevel(MASTER)
+                    newWindow.geometry("1000x500")
+                    newWindow.title("Customization")
+                    app = VirtualKeyboardApplication(newWindow,MASTER)
                     flag = False
-                work_keyb()
                 print('shargrilah')
             else:
 
@@ -1317,6 +1336,7 @@ def write_practice_files(r, timer_practice):
 
 # CODE STARTS HERE
 if __name__ == "__main__":
+    global MASTER
     # initialize mainApplication tkinter window
     win = tk.Tk()
     win.title("BoMI Settings")
@@ -1331,7 +1351,7 @@ if __name__ == "__main__":
     y_cordinate = int((screen_height / 2) - (window_height / 2))
 
     win.geometry("{}x{}+{}+{}".format(window_width, window_height, x_cordinate, y_cordinate))
-
+    MASTER = win
     MainApplication(win)
 
     # initiate Tkinter mainloop
