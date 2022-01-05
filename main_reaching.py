@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 import time
+
 import matplotlib.pyplot as plt
 # For multithreading
 from threading import Thread, Lock
@@ -611,6 +612,7 @@ def initialize_customization(self, dr_mode, drPath, num_joints, joints):
     """
 
     # Create object of openCV, Reaching class and filter_butter3
+    global prev_cx, prev_cy
     cap = cv2.VideoCapture(0)
     r = Reaching()
     filter_curs = FilterButter3("lowpass_4")
@@ -1048,7 +1050,7 @@ def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
     m_enabled = mouse_enabled
     flag = True
     ############################################################
-
+    th=10
     # Define some colors
     BLACK = (0, 0, 0)
     RED = (255, 0, 0)
@@ -1062,9 +1064,12 @@ def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
     filter_curs = FilterButter3("lowpass_4")
 
     # Open a new window
+    timer_click=StopWatch()
     if not m_enabled:
         size = (r.width, r.height)
         screen = pygame.display.set_mode(size)
+    else:
+        timer_click.start()
     #screen = pygame.display.toggle_fullscreen()
 
     # The clock will be used to control how fast the screen updates
@@ -1074,7 +1079,7 @@ def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
     timer_enter_tgt = StopWatch()
     timer_start_trial = StopWatch()
     timer_practice = StopWatch()
-    timer_click=StopWatch()
+    
     # initialize targets and the reaching log file header
     reaching_functions.initialize_targets(r)
     reaching_functions.write_header(r)
@@ -1171,6 +1176,12 @@ def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
             # [ADD CODE HERE] !!!!!!!!!!!!!!!!!!!!!
             if m_enabled:
                 pyautogui.moveTo(r.crs_x, r.crs_y)
+                print(timer_click.elapsed_time)
+                print(((r.old_crs_x - r.crs_x)**2+(r.old_crs_y - r.crs_y)**2))
+                if ((r.old_crs_x - r.crs_x)**2+(r.old_crs_y - r.crs_y)**2)>th:
+                      timer_click.start()
+                if timer_click.elapsed_time > 2000:
+                      pyautogui.click(r.crs_x,r.crs_y)
 
             else:
 
