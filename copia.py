@@ -13,7 +13,7 @@ from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import TruncatedSVD
 from sklearn.linear_model import LogisticRegression
-
+from sklearn.manifold import TSNE
 # define dataset
 #X, y = make_classification(n_samples=1000, n_features=20, n_informative=10, n_redundant=10, random_state=7)
 # read calibration file and remove all the initial zero rows
@@ -24,25 +24,8 @@ x = np.array(x)
 
 # randomly shuffle input
 np.random.shuffle(x)
-
 # define train/test split
-thr = 80
-split = int(len(x) * thr / 100)
-train_x = x[0:split, :]
-test_x = x[split:, :]
-
-print(train_x)
-print(train_x.shape)
-print(type(train_x))
+#prv=TSNE(n_components=2, *, perplexity=30.0, early_exaggeration=12.0, learning_rate='warn', n_iter=1000, n_iter_without_progress=300, min_grad_norm=1e-07, metric='euclidean', init='warn', verbose=0, random_state=None, method='barnes_hut', angle=0.5, n_jobs=None, square_distances='legacy')[source]
+X_embedded = TSNE(n_components=2, learning_rate='auto',  init='random').fit_transform(x)
+print(X_embedded)
 # define the pipeline
-sp = [('svd', TruncatedSVD(n_components=2)), ('m', LogisticRegression())]
-model = Pipeline(steps=sp)
-print(model.get_params)
-# evaluate model
-
-cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
-print(cv.get_n_splits)
-n_sc = cross_val_score(model, train_x, scoring='accuracy', cv=8, n_jobs=-1)
-# report performance
-print('Accuracy: %.3f (%.3f)' % (mean(n_sc), np(n_sc)))
-print(model.get_params)
