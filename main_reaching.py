@@ -49,7 +49,7 @@ class MainApplication(tk.Frame):
         self.calibPath = os.path.dirname(os.path.abspath(__file__)) + "/calib/"
         self.drPath = ''
         self.num_joints = 0
-        self.joints = np.zeros((5, 1))
+        self.joints = np.zeros((6, 1))
         self.dr_mode = 'ae'
         self.font_size = 18
         MASTER = self.master
@@ -85,6 +85,11 @@ class MainApplication(tk.Frame):
         self.check5 = Checkbutton(win, text="Fingers", variable=self.check_fingers)
         self.check5.config(font=("Arial", self.font_size))
         self.check5.grid(row=0, column=6, padx=(0, 20), pady=30, sticky='nesw')
+
+        self.check_mouth = BooleanVar()
+        self.check6 = Checkbutton(win, text="Mouth", variable=self.check_mouth)
+        self.check6.config(font=("Arial", self.font_size))
+        self.check6.grid(row=0, column=7, padx=(0, 20), pady=30, sticky='nesw')
 
         self.btn_calib = Button(parent, text="Calibration", command=self.calibration)
         self.btn_calib["state"] = "disabled"
@@ -154,6 +159,7 @@ class MainApplication(tk.Frame):
         shoulders_enabled = self.check_shoulders.get()
         forefinger_enabled = self.check_forefinger.get()
         fingers_enabled = self.check_fingers.get()
+        mouth_enabled=self.check_mouth.get()
         if nose_enabled:
             self.num_joints += 2
             self.joints[0, 0] = 1
@@ -169,6 +175,9 @@ class MainApplication(tk.Frame):
         if fingers_enabled:
             self.num_joints += 10
             self.joints[4, 0] = 1
+        if mouth_enabled:
+            self.num_joints += 4
+            self.joints[5, 0] = 1
         if np.sum(self.joints, axis=0) != 0:
             self.btn_calib["state"] = "normal"
             self.btn_map["state"] = "normal"
@@ -580,6 +589,8 @@ def train_ae(calibPath, drPath):
     np.savetxt(drPath + "offset_dr.txt", off)
 
     print('AE scaling values has been saved. You can continue with customization.')
+
+    
 
 
 def load_bomi_map(dr_mode, drPath):
@@ -1306,7 +1317,12 @@ def mediapipe_forwardpass(holistic, mp_holistic, lock, q_frame, r, num_joints, j
                 body_list.append(results.right_hand_landmarks.landmark[mp_holistic.HandLandmark.RING_FINGER_TIP].y)
                 body_list.append(results.right_hand_landmarks.landmark[mp_holistic.HandLandmark.PINKY_TIP].x)
                 body_list.append(results.right_hand_landmarks.landmark[mp_holistic.HandLandmark.PINKY_TIP].y)
-
+            if joints[5, 0] == 1:
+                print('calibrated with mouth')
+                body_list.append(results.pose_landmarks.landmark[mp_holistic.PoseLandmark.MOUTH_RIGHT].x)
+                body_list.append(results.pose_landmarks.landmark[mp_holistic.PoseLandmark.MOUTH_RIGHT].y)
+                body_list.append(results.pose_landmarks.landmark[mp_holistic.PoseLandmark.MOUTH_LEFT].x)
+                body_list.append(results.pose_landmarks.landmark[mp_holistic.PoseLandmark.MOUTH_LEFT].y)
             body_mp = np.array(body_list)
             q_frame.queue.clear()
             with lock:

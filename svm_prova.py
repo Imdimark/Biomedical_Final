@@ -17,6 +17,6 @@ cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
 print(X.shape)
 h=cv.get_n_splits
 print(h)
-n_scores = cross_val_score(model, X, y, scoring='accuracy', cv=8, n_jobs=-1)
+n_scores = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1)
 # report performance
 print('Accuracy: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
