@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 import time
+
 import matplotlib.pyplot as plt
 # For multithreading
 from threading import Thread, Lock
@@ -30,10 +31,11 @@ from compute_bomi_map import Autoencoder, PrincipalComponentAnalysis, compute_va
 
 pyautogui.PAUSE = 0.01  # set fps of cursor to 100Hz ish when mouse_enabled is True
 
+# Global variables initialisation
+MASTER=None
+prev_cx=0
+prev_cy=0
 
-exp = " "          # global variable 
-key=None
-equation=None
 
 class MainApplication(tk.Frame):
     """
@@ -42,6 +44,7 @@ class MainApplication(tk.Frame):
 
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
+        global MASTER
         self.parent = parent
         self.calibPath = os.path.dirname(os.path.abspath(__file__)) + "/calib/"
         self.drPath = ''
@@ -49,10 +52,9 @@ class MainApplication(tk.Frame):
         self.joints = np.zeros((5, 1))
         self.dr_mode = 'ae'
         self.font_size = 18
-
-        print('win: ', win)
-        print('parent: ', parent)
-        
+        MASTER = self.master
+        print('MASTER',MASTER)
+        print('tk',tk.Frame)
         self.btn_num_joints = Button(parent, text="Select Joints", command=self.select_joints)
         self.btn_num_joints.config(font=("Arial", self.font_size))
         self.btn_num_joints.grid(row=0, column=0, columnspan=2, padx=20, pady=30, sticky='nesw')
@@ -89,6 +91,8 @@ class MainApplication(tk.Frame):
         self.btn_calib.config(font=("Arial", self.font_size))
         self.btn_calib.grid(row=1, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
         self.calib_duration = 3000
+
+    
 
         # Calibration time remaining
         self.lbl_calib = Label(win, text='Calibration time: ')
@@ -174,7 +178,6 @@ class MainApplication(tk.Frame):
 
     def calibration(self):
         # start calibration dance - collect webcam data
-        print('master: ', self.master)
         self.w = popupWindow(self.master, "You will now start calibration.")
         self.master.wait_window(self.w.top)
         compute_calibration(self.calibPath, self.calib_duration, self.lbl_calib, self.num_joints, self.joints)
@@ -224,13 +227,27 @@ class MainApplication(tk.Frame):
             if not self.check_mouse.get():
                 self.w = popupWindow(self.master, "You will now start practice.")
                 self.master.wait_window(self.w.top)
-            start_reaching(self.drPath, self.lbl_tgt, self.num_joints, self.joints, self.dr_mode, self.check_mouse.get())
+            else:
+                key_thread = Thread(target=self.create_keyboard)
+                key_thread.start() 
+                print('dentro flag')
+            s_thread=Thread(target=start_reaching,args=(self.drPath, self.lbl_tgt, self.num_joints, self.joints, self.dr_mode, self.check_mouse.get()))
+            s_thread.start()        
+            #start_reaching(self.drPath, self.lbl_tgt, self.num_joints, self.joints, self.dr_mode, self.check_mouse.get())
+            
             # [ADD CODE HERE: one of the argument of start reaching should be [self.check_mouse]
             # to check in the checkbox is enable] !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         else:
             self.w = popupWindow(self.master, "Perform customization first.")
             self.master.wait_window(self.w.top)
             self.btn_start["state"] = "disabled"
+    
+    def create_keyboard(self):
+        self.newWindow = tk.Toplevel(self.master)
+        self.newWindow.geometry("1000x500")
+        self.newWindow.title("Customization")
+        self.app = VirtualKeyboardApplication(self.newWindow,self, drPath=self.drPath, num_joints=self.num_joints,
+                                        joints=self.joints, dr_mode=self.dr_mode)
 
 
 class CustomizationApplication(tk.Frame):
@@ -595,6 +612,7 @@ def initialize_customization(self, dr_mode, drPath, num_joints, joints):
     """
 
     # Create object of openCV, Reaching class and filter_butter3
+    global prev_cx, prev_cy
     cap = cv2.VideoCapture(0)
     r = Reaching()
     filter_curs = FilterButter3("lowpass_4")
@@ -776,246 +794,245 @@ def save_parameters(self, drPath):
 
 # [ADD CODE HERE: check_mouse as function input]
 
-def press(num):
-    global exp, equation
-    exp=exp + str(num)
-    equation.set(exp)
-# end 
 
-# function clear button
 
-def clear():
-    global exp, equation
-    exp = " "
-    equation.set(exp)
-
-# end 
-
-# Enter Button Work Next line Function
-
-def action():
-  global equation  
-  exp = " Next Line : "
-  equation.set(exp)
-
-# end function coding
-
-# Tab Button Function 
-
-def Tab():
-  global equation  
-  exp = " TAB : "
-  equation.set(exp)
-
-# END Tab Button Fucntion
-def init_keyb():
-    global key, equation
+class VirtualKeyboardApplication(tk.Frame):
+    """
+    class that defines 
+    """
     
-    key = tk.Tk()
-    equation = tk.StringVar()
-    print('initkeyb')
+    def __init__(self, parent, mainTk, drPath, num_joints, joints, dr_mode):
+        tk.Frame.__init__(self, parent)
+        self.parent = parent
+        self.mainTk = mainTk
+        self.drPath = drPath
+        self.num_joints = num_joints
+        self.joints = joints
+        self.dr_mode = dr_mode
+        self.font_size = 18
+        self.equation = tk.StringVar()
+        self.exp = " "
+        print('dentro init')
+        
+        self.Dis_entry = ttk.Entry(parent,state= 'readonly',textvariable = self.equation)
+        self.Dis_entry.grid(rowspan= 1 , columnspan = 100, ipadx = 999 , ipady = 20)
+     
+        self.q = ttk.Button(parent,text = 'Q' , width = 6, command = lambda :  self.press('Q'))
+        self.q.grid(row = 1 , column = 0, ipadx = 6 , ipady = 10)
+
+        self.w = ttk.Button(parent,text = 'W' , width = 6, command =lambda :  self.press('W'))
+        self.w.grid(row = 1 , column = 1, ipadx = 6 , ipady = 10)
+
+        self.E = ttk.Button(parent,text = 'E' , width = 6, command = lambda : self.press('E'))
+        self.E.grid(row = 1 , column = 2, ipadx = 6 , ipady = 10)
+
+        self.R = ttk.Button(parent,text = 'R' , width = 6, command = lambda : self.press('R'))
+        self.R.grid(row = 1 , column = 3, ipadx = 6 , ipady = 10)
+
+        self.T = ttk.Button(parent,text = 'T' , width = 6, command = lambda : self.press('T'))
+        self.T.grid(row = 1 , column = 4, ipadx = 6 , ipady = 10)
+
+        self.Y = ttk.Button(parent,text = 'Y' , width = 6, command = lambda : self.press('Y'))
+        self.Y.grid(row = 1 , column = 5, ipadx = 6 , ipady = 10)
+
+        self.U = ttk.Button(parent,text = 'U' , width = 6, command = lambda : self.press('U'))
+        self.U.grid(row = 1 , column = 6, ipadx = 6 , ipady = 10)
+
+        self.I = ttk.Button(parent,text = 'I' , width = 6, command = lambda : self.press('I'))
+        self.I.grid(row = 1 , column = 7, ipadx = 6 , ipady = 10)
+
+        self.O = ttk.Button(parent,text = 'O' , width = 6, command = lambda : self.press('O'))
+        self.O.grid(row = 1 , column = 8, ipadx = 6 , ipady = 10)
+
+        self.P = ttk.Button(parent,text = 'P' , width = 6, command =lambda :  self.press('P'))
+        self.P.grid(row = 1 , column = 9, ipadx = 6 , ipady = 10)
+
+        self.cur = ttk.Button(parent,text = '{' , width = 6, command = lambda : self.press('{'))
+        self.cur.grid(row = 1 , column = 10 , ipadx = 6 , ipady = 10)
+
+        self.cur_c = ttk.Button(parent,text = '}' , width = 6, command =lambda :  self.press('}'))
+        self.cur_c.grid(row = 1 , column = 11, ipadx = 6 , ipady = 10)
+
+        self.back_slash = ttk.Button(parent,text = '\\' , width = 6, command = lambda : self.press('\\'))
+        self.back_slash.grid(row = 1 , column = 12, ipadx = 6 , ipady = 10)
+
+
+        self.clearbtn = ttk.Button(parent,text = 'Clear' , width = 6, command =lambda :  self.clear(' '))
+        self.clearbtn.grid(row = 1 , column = 13, ipadx = 20 , ipady = 10)
+
+        # Second Line Button
+
+
+
+        self.A = ttk.Button(parent,text = 'A' , width = 6, command = lambda : self.press('A'))
+        self.A.grid(row = 2 , column = 0, ipadx = 6 , ipady = 10)
+
+
+
+        self.S = ttk.Button(parent,text = 'S' , width = 6, command = lambda : self.press('S'))
+        self.S.grid(row = 2 , column = 1, ipadx = 6 , ipady = 10)
+
+        self.D = ttk.Button(parent,text = 'D' , width = 6, command = lambda : self.press('D'))
+        self.D.grid(row = 2 , column = 2, ipadx = 6 , ipady = 10)
+
+        self.F = ttk.Button(parent,text = 'F' , width = 6, command = lambda : self.press('F'))
+        self.F.grid(row = 2 , column = 3, ipadx = 6 , ipady = 10)
+
+
+        self.G = ttk.Button(parent,text = 'G' , width = 6, command = lambda : self.press('G'))
+        self.G.grid(row = 2 , column = 4, ipadx = 6 , ipady = 10)
+
+
+        self.H = ttk.Button(parent,text = 'H' , width = 6, command =lambda :  self.press('H'))
+        self.H.grid(row = 2 , column = 5, ipadx = 6 , ipady = 10)
+
+
+        self.J = ttk.Button(parent,text = 'J' , width = 6, command =lambda :  self.press('J'))
+        self.J.grid(row = 2 , column = 6, ipadx = 6 , ipady = 10)
+
+
+        self.K = ttk.Button(parent,text = 'K' , width = 6, command =lambda :  self.press('K'))
+        self.K.grid(row = 2 , column = 7, ipadx = 6 , ipady = 10)
+
+        self.L = ttk.Button(parent,text = 'L' , width = 6, command = lambda : self.press('L'))
+        self.L.grid(row = 2 , column = 8, ipadx = 6 , ipady = 10)
+
+
+        self.semi_co = ttk.Button(parent,text = ';' , width = 6, command = lambda : self.press(';'))
+        self.semi_co.grid(row = 2 , column = 9, ipadx = 6 , ipady = 10)
+
+
+        self.d_colon = ttk.Button(parent,text = '"' , width = 6, command = lambda : self.press('"'))
+        self.d_colon.grid(row = 2 , column = 10, ipadx = 6 , ipady = 10)
+
+
+        self.enter = ttk.Button(parent,text = 'Enter' , width = 6, command = lambda : self.action(' Next Line : '))
+        self.enter.grid(row = 2 , columnspan = 75, ipadx = 85 , ipady = 10)
+
+        # third line Button
+
+        self.Z = ttk.Button(parent,text = 'Z' , width = 6, command = lambda : self.press('Z'))
+        self.Z.grid(row = 3 , column = 0, ipadx = 6 , ipady = 10)
+
+
+        self.X = ttk.Button(parent,text = 'X' , width = 6, command = lambda :  self.press('X'))
+        self.X.grid(row = 3 , column = 1, ipadx = 6 , ipady = 10)
+
+
+        self.C = ttk.Button(parent,text = 'C' , width = 6, command =lambda :  self.press('C'))
+        self.C.grid(row = 3 , column = 2, ipadx = 6 , ipady = 10)
+
+
+        self.V = ttk.Button(parent,text = 'V' , width = 6, command = lambda : self.press('V'))
+        self.V.grid(row = 3 , column = 3, ipadx = 6 , ipady = 10)
+
+        self.B = ttk.Button(parent, text= 'B' , width = 6 , command =lambda :  self.press('B'))
+        self.B.grid(row = 3 , column = 4 , ipadx = 6 ,ipady = 10)
+
+
+        self.N = ttk.Button(parent,text = 'N' , width = 6, command = lambda : self.press('N'))
+        self.N.grid(row = 3 , column = 5, ipadx = 6 , ipady = 10)
+
+
+        self.M = ttk.Button(parent,text = 'M' , width = 6, command = lambda : self.press('M'))
+        self.M.grid(row = 3 , column = 6, ipadx = 6 , ipady = 10)
+
+
+        self.left = ttk.Button(parent,text = '<' , width = 6, command = lambda : self.press('<'))
+        self.left.grid(row = 3 , column = 7, ipadx = 6 , ipady = 10)
+
+
+        self.right = ttk.Button(parent,text = '>' , width = 6, command =lambda :  self.press('>'))
+        self.right.grid(row = 3 , column = 8, ipadx = 6 , ipady = 10)
+
+
+        self.slas = ttk.Button(parent,text = '/' , width = 6, command =lambda :  self.press('/'))
+        self.slas.grid(row = 3 , column = 9, ipadx = 6 , ipady = 10)
+
+
+        self.q_mark = ttk.Button(parent,text = '?' , width = 6, command =lambda :  self.press('?'))
+        self.q_mark.grid(row = 3 , column = 10, ipadx = 6 , ipady = 10)
+
+
+        self.coma = ttk.Button(parent,text = ',' , width = 6, command =lambda :  self.press(','))
+        self.coma.grid(row = 3 , column = 11, ipadx = 6 , ipady = 10)
+
+        self.dot = ttk.Button(parent,text = '.' , width = 6, command =lambda :  self.press('.'))
+        self.dot.grid(row = 3 , column = 12, ipadx = 6 , ipady = 10)
+
+        self.shift = ttk.Button(parent,text = 'Shift' , width = 6, command = lambda : self.press('Shift'))
+        self.shift.grid(row = 3 , column = 13, ipadx = 20 , ipady = 10)
+
+        #Fourth Line Button
+
+
+        self.ctrl = ttk.Button(parent,text = 'Ctrl' , width = 6, command = lambda : self.press('Ctrl'))
+        self.ctrl.grid(row = 4 , column = 0, ipadx = 6 , ipady = 10)
+
+
+        self.Fn = ttk.Button(parent,text = 'Fn' , width = 6, command =lambda :  self.press('Fn'))
+        self.Fn.grid(row = 4 , column = 1, ipadx = 6 , ipady = 10)
+
+
+        self.window = ttk.Button(parent,text = 'Window' , width = 6, command = lambda : self.press('Window'))
+        self.window.grid(row = 4 , column = 2 , ipadx = 6 , ipady = 10)
+
+        self.Alt = ttk.Button(parent,text = 'Alt' , width = 6, command = lambda : self.press('Alt'))
+        self.Alt.grid(row = 4 , column = 3 , ipadx = 6 , ipady = 10)
+
+        self.space = ttk.Button(parent,text = 'Space' , width = 6, command = lambda : self.press(' '))
+        self.space.grid(row = 4 , columnspan = 14 , ipadx = 160 , ipady = 10)
+
+        self.Alt_gr = ttk.Button(parent,text = 'Alt Gr' , width = 6, command = lambda : self.press('Alt Gr'))
+        self.Alt_gr.grid(row = 4 , column = 10 , ipadx = 6 , ipady = 10)
+
+        self.open_b = ttk.Button(parent,text = '(' , width = 6, command =lambda :  self.press('('))
+        self.open_b.grid(row = 4 , column = 11 , ipadx = 6 , ipady = 10)
+
+        self.close_b = ttk.Button(parent,text = ')' , width = 6, command = lambda : self.press(')'))
+        self.close_b.grid(row = 4 , column = 12 , ipadx = 6 , ipady = 10)
+
+
+        self.tap = ttk.Button(parent,text = 'Tab' , width = 6, command =lambda :  self.Tab(' Tab: '))
+        self.tap.grid(row = 4 , column = 13 , ipadx = 20 , ipady = 10)
     
-def work_keyb():
-    global key, equation
-    
-    
-    print('workkryb')
-    key.title('Keyboard By Jesus')  # title Name
-    # Size window size
-    key.geometry('1010x250')         # normal size
-    key.maxsize(width=1010, height=250)      # maximum size
-    key.minsize(width= 1010 , height = 250)     # minimum size
-    # end window size
-
-    key.configure(bg = 'green')    #  add background color
-
-    Dis_entry = ttk.Entry(key,state= 'readonly',textvariable = equation)
-    Dis_entry.grid(rowspan= 1 , columnspan = 100, ipadx = 999 , ipady = 20)
-
-
-    # add all button line wise 
-
-    # First Line Button
-
-    q = ttk.Button(key,text = 'Q' , width = 6, command = lambda : press('Q'))
-    q.grid(row = 1 , column = 0, ipadx = 6 , ipady = 10)
-
-    w = ttk.Button(key,text = 'W' , width = 6, command = lambda : press('W'))
-    w.grid(row = 1 , column = 1, ipadx = 6 , ipady = 10)
-
-    E = ttk.Button(key,text = 'E' , width = 6, command = lambda : press('E'))
-    E.grid(row = 1 , column = 2, ipadx = 6 , ipady = 10)
-
-    R = ttk.Button(key,text = 'R' , width = 6, command = lambda : press('R'))
-    R.grid(row = 1 , column = 3, ipadx = 6 , ipady = 10)
-
-    T = ttk.Button(key,text = 'T' , width = 6, command = lambda : press('T'))
-    T.grid(row = 1 , column = 4, ipadx = 6 , ipady = 10)
-
-    Y = ttk.Button(key,text = 'Y' , width = 6, command = lambda : press('Y'))
-    Y.grid(row = 1 , column = 5, ipadx = 6 , ipady = 10)
-
-    U = ttk.Button(key,text = 'U' , width = 6, command = lambda : press('U'))
-    U.grid(row = 1 , column = 6, ipadx = 6 , ipady = 10)
-
-    I = ttk.Button(key,text = 'I' , width = 6, command = lambda : press('I'))
-    I.grid(row = 1 , column = 7, ipadx = 6 , ipady = 10)
-
-    O = ttk.Button(key,text = 'O' , width = 6, command = lambda : press('O'))
-    O.grid(row = 1 , column = 8, ipadx = 6 , ipady = 10)
-
-    P = ttk.Button(key,text = 'P' , width = 6, command = lambda : press('P'))
-    P.grid(row = 1 , column = 9, ipadx = 6 , ipady = 10)
-
-    cur = ttk.Button(key,text = '{' , width = 6, command = lambda : press('{'))
-    cur.grid(row = 1 , column = 10 , ipadx = 6 , ipady = 10)
-
-    cur_c = ttk.Button(key,text = '}' , width = 6, command = lambda : press('}'))
-    cur_c.grid(row = 1 , column = 11, ipadx = 6 , ipady = 10)
-
-    back_slash = ttk.Button(key,text = '\\' , width = 6, command = lambda : press('\\'))
-    back_slash.grid(row = 1 , column = 12, ipadx = 6 , ipady = 10)
-
-
-    clearbtn = ttk.Button(key,text = 'Clear' , width = 6, command = clear)
-    clearbtn.grid(row = 1 , column = 13, ipadx = 20 , ipady = 10)
-
-    # Second Line Button
-
-
-
-    A = ttk.Button(key,text = 'A' , width = 6, command = lambda : press('A'))
-    A.grid(row = 2 , column = 0, ipadx = 6 , ipady = 10)
-
-
-
-    S = ttk.Button(key,text = 'S' , width = 6, command = lambda : press('S'))
-    S.grid(row = 2 , column = 1, ipadx = 6 , ipady = 10)
-
-    D = ttk.Button(key,text = 'D' , width = 6, command = lambda : press('D'))
-    D.grid(row = 2 , column = 2, ipadx = 6 , ipady = 10)
-
-    F = ttk.Button(key,text = 'F' , width = 6, command = lambda : press('F'))
-    F.grid(row = 2 , column = 3, ipadx = 6 , ipady = 10)
-
-
-    G = ttk.Button(key,text = 'G' , width = 6, command = lambda : press('G'))
-    G.grid(row = 2 , column = 4, ipadx = 6 , ipady = 10)
-
-
-    H = ttk.Button(key,text = 'H' , width = 6, command = lambda : press('H'))
-    H.grid(row = 2 , column = 5, ipadx = 6 , ipady = 10)
-
-
-    J = ttk.Button(key,text = 'J' , width = 6, command = lambda : press('J'))
-    J.grid(row = 2 , column = 6, ipadx = 6 , ipady = 10)
-
-
-    K = ttk.Button(key,text = 'K' , width = 6, command = lambda : press('K'))
-    K.grid(row = 2 , column = 7, ipadx = 6 , ipady = 10)
-
-    L = ttk.Button(key,text = 'L' , width = 6, command = lambda : press('L'))
-    L.grid(row = 2 , column = 8, ipadx = 6 , ipady = 10)
-
-
-    semi_co = ttk.Button(key,text = ';' , width = 6, command = lambda : press(';'))
-    semi_co.grid(row = 2 , column = 9, ipadx = 6 , ipady = 10)
-
-
-    d_colon = ttk.Button(key,text = '"' , width = 6, command = lambda : press('"'))
-    d_colon.grid(row = 2 , column = 10, ipadx = 6 , ipady = 10)
-
-
-    enter = ttk.Button(key,text = 'Enter' , width = 6, command = action)
-    enter.grid(row = 2 , columnspan = 75, ipadx = 85 , ipady = 10)
-
-    # third line Button
-
-    Z = ttk.Button(key,text = 'Z' , width = 6, command = lambda : press('Z'))
-    Z.grid(row = 3 , column = 0, ipadx = 6 , ipady = 10)
-
-
-    X = ttk.Button(key,text = 'X' , width = 6, command = lambda : press('X'))
-    X.grid(row = 3 , column = 1, ipadx = 6 , ipady = 10)
-
-
-    C = ttk.Button(key,text = 'C' , width = 6, command = lambda : press('C'))
-    C.grid(row = 3 , column = 2, ipadx = 6 , ipady = 10)
-
-
-    V = ttk.Button(key,text = 'V' , width = 6, command = lambda : press('V'))
-    V.grid(row = 3 , column = 3, ipadx = 6 , ipady = 10)
-
-    B = ttk.Button(key, text= 'B' , width = 6 , command = lambda : press('B'))
-    B.grid(row = 3 , column = 4 , ipadx = 6 ,ipady = 10)
-
-
-    N = ttk.Button(key,text = 'N' , width = 6, command = lambda : press('N'))
-    N.grid(row = 3 , column = 5, ipadx = 6 , ipady = 10)
-
-
-    M = ttk.Button(key,text = 'M' , width = 6, command = lambda : press('M'))
-    M.grid(row = 3 , column = 6, ipadx = 6 , ipady = 10)
-
-
-    left = ttk.Button(key,text = '<' , width = 6, command = lambda : press('<'))
-    left.grid(row = 3 , column = 7, ipadx = 6 , ipady = 10)
-
-
-    right = ttk.Button(key,text = '>' , width = 6, command = lambda : press('>'))
-    right.grid(row = 3 , column = 8, ipadx = 6 , ipady = 10)
-
-
-    slas = ttk.Button(key,text = '/' , width = 6, command = lambda : press('/'))
-    slas.grid(row = 3 , column = 9, ipadx = 6 , ipady = 10)
-
-
-    q_mark = ttk.Button(key,text = '?' , width = 6, command = lambda : press('?'))
-    q_mark.grid(row = 3 , column = 10, ipadx = 6 , ipady = 10)
-
-
-    coma = ttk.Button(key,text = ',' , width = 6, command = lambda : press(','))
-    coma.grid(row = 3 , column = 11, ipadx = 6 , ipady = 10)
-
-    dot = ttk.Button(key,text = '.' , width = 6, command = lambda : press('.'))
-    dot.grid(row = 3 , column = 12, ipadx = 6 , ipady = 10)
-
-    shift = ttk.Button(key,text = 'Shift' , width = 6, command = lambda : press('Shift'))
-    shift.grid(row = 3 , column = 13, ipadx = 20 , ipady = 10)
-
-    #Fourth Line Button
-
-
-    ctrl = ttk.Button(key,text = 'Ctrl' , width = 6, command = lambda : press('Ctrl'))
-    ctrl.grid(row = 4 , column = 0, ipadx = 6 , ipady = 10)
-
-
-    Fn = ttk.Button(key,text = 'Fn' , width = 6, command = lambda : press('Fn'))
-    Fn.grid(row = 4 , column = 1, ipadx = 6 , ipady = 10)
-
-
-    window = ttk.Button(key,text = 'Window' , width = 6, command = lambda : press('Window'))
-    window.grid(row = 4 , column = 2 , ipadx = 6 , ipady = 10)
-
-    Alt = ttk.Button(key,text = 'Alt' , width = 6, command = lambda : press('Alt'))
-    Alt.grid(row = 4 , column = 3 , ipadx = 6 , ipady = 10)
-
-    space = ttk.Button(key,text = 'Space' , width = 6, command = lambda : press(' '))
-    space.grid(row = 4 , columnspan = 14 , ipadx = 160 , ipady = 10)
-
-    Alt_gr = ttk.Button(key,text = 'Alt Gr' , width = 6, command = lambda : press('Alt Gr'))
-    Alt_gr.grid(row = 4 , column = 10 , ipadx = 6 , ipady = 10)
-
-    open_b = ttk.Button(key,text = '(' , width = 6, command = lambda : press('('))
-    open_b.grid(row = 4 , column = 11 , ipadx = 6 , ipady = 10)
-
-    close_b = ttk.Button(key,text = ')' , width = 6, command = lambda : press(')'))
-    close_b.grid(row = 4 , column = 12 , ipadx = 6 , ipady = 10)
-
-
-    tap = ttk.Button(key,text = 'Tab' , width = 6, command = Tab)
-    tap.grid(row = 4 , column = 13 , ipadx = 20 , ipady = 10)
-
+    # functions to retrieve values of textbox programmatically
+
+    def press(self,num):
+       
+        self.exp=self.exp + str(num)
+        self.equation.set(self.exp)
+        print(self.exp)
+        print(self.equation)
+    # end 
+
+    # function clear button
+
+    def clear(self,num):
+        self.exp = str(num)
+        self.equation.set(self.exp)
+        print(self.exp)
+        print(self.equation)
+
+    # end 
+
+    # Enter Button Work Next line Function
+
+    def action(self,num): 
+        self.exp = str(num)
+        self.equation.set(self.exp)
+        print(self.exp)
+        print(self.equation)
+
+    # end function coding
+
+    # Tab Button Function 
+
+    def Tab(self,num): 
+        self.exp = str(num)
+        self.equation.set(self.exp)
+        print(self.exp)
+        print(self.equation)
 
 
 def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
@@ -1029,11 +1046,11 @@ def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
     pygame.init()
 
     # [ADD CODE HERE] get value from checkbox - is mouse enabled? !!!!!!!!!!!!!!!!!!!
-    
+    global MASTER
     m_enabled = mouse_enabled
     flag = True
     ############################################################
-
+    th=10
     # Define some colors
     BLACK = (0, 0, 0)
     RED = (255, 0, 0)
@@ -1047,10 +1064,13 @@ def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
     filter_curs = FilterButter3("lowpass_4")
 
     # Open a new window
+    timer_click=StopWatch()
     if not m_enabled:
         size = (r.width, r.height)
         screen = pygame.display.set_mode(size)
-    # screen = pygame.display.toggle_fullscreen()
+    else:
+        timer_click.start()
+    #screen = pygame.display.toggle_fullscreen()
 
     # The clock will be used to control how fast the screen updates
     clock = pygame.time.Clock()
@@ -1059,7 +1079,7 @@ def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
     timer_enter_tgt = StopWatch()
     timer_start_trial = StopWatch()
     timer_practice = StopWatch()
-
+    
     # initialize targets and the reaching log file header
     reaching_functions.initialize_targets(r)
     reaching_functions.write_header(r)
@@ -1150,17 +1170,19 @@ def start_reaching(drPath, lbl_tgt, num_joints, joints, dr_mode, mouse_enabled):
 
             # Filter the cursor
             r.crs_x, r.crs_y = reaching_functions.filter_cursor(r, filter_curs)
-
+            
             # if mouse checkbox was enabled do not draw the reaching GUI,
             # only change coordinates of the computer cursor !!!!!!!!!!!!!!!!!!!!!
             # [ADD CODE HERE] !!!!!!!!!!!!!!!!!!!!!
             if m_enabled:
                 pyautogui.moveTo(r.crs_x, r.crs_y)
-                if flag:
-                    init_keyb()
-                    flag = False
-                work_keyb()
-                print('shargrilah')
+                print(timer_click.elapsed_time)
+                print(((r.old_crs_x - r.crs_x)**2+(r.old_crs_y - r.crs_y)**2))
+                if ((r.old_crs_x - r.crs_x)**2+(r.old_crs_y - r.crs_y)**2)>th:
+                      timer_click.start()
+                if timer_click.elapsed_time > 2000:
+                      pyautogui.click(r.crs_x,r.crs_y)
+
             else:
 
                 # Set target position to update the GUI
@@ -1323,6 +1345,7 @@ def write_practice_files(r, timer_practice):
 
 # CODE STARTS HERE
 if __name__ == "__main__":
+    
     # initialize mainApplication tkinter window
     win = tk.Tk()
     win.title("BoMI Settings")
@@ -1337,7 +1360,7 @@ if __name__ == "__main__":
     y_cordinate = int((screen_height / 2) - (window_height / 2))
 
     win.geometry("{}x{}+{}+{}".format(window_width, window_height, x_cordinate, y_cordinate))
-
+   #MASTER = win
     MainApplication(win)
 
     # initiate Tkinter mainloop
