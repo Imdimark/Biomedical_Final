@@ -6,6 +6,9 @@ import os
 import time
 
 import rospy
+import roslaunch
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 
 import matplotlib.pyplot as plt
 # For multithreading
@@ -155,11 +158,36 @@ class MainApplication(tk.Frame):
         
 
         #############################################################
-
+        #ROS button
+        self.btn_ros = Button(parent, text="ROS game", command=self.ROS_game, borderwidth=3, relief="solid",bg='#CCCCFF',fg='black')
+        self.btn_ros.config(font=("Arial", self.font_size))
+        self.btn_ros.grid(row=8, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
+	#############################################################
         self.btn_close = Button(parent, text="Close", command=parent.destroy, bg="#800000", borderwidth=3, relief="solid")
         self.btn_close.config(font=("Arial", self.font_size))
-        self.btn_close.grid(row=8, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
+        self.btn_close.grid(row=9, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
+	
+    def ROS_game(self):
+        '''uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+	roslaunch.configure_logging(uuid)
+	launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/haier/catkin_ws/src/testapi/launch/test_node.launch"])
+	launch.start()
+    	rospy.sleep(3)
+	# 3 seconds later
+	launch.shutdown()'''
+        package = 'stage_ros'
+        executable = 'stageros'
+        node = roslaunch.core.Node(package, executable, args='$(rospack find stage_ros)/world/willow-erratic.world')
 
+        launch = roslaunch.scriptapi.ROSLaunch()
+        launch.start()
+
+        process = launch.launch(node)
+        print (process.is_alive())
+        #process.stop()
+        
+        #apro finestra con i 4 punti
+    
     # Count number of joints selected
     def select_joints(self):
         nose_enabled = self.check_nose.get()
@@ -387,6 +415,59 @@ class popupWindow(object):
 
     def cleanup(self):
         self.top.destroy()
+        
+
+class ROS_window(object):
+    """
+    class that defines the popup ROS window
+    """
+    
+
+    def __init__(self, master):
+        self.targetx
+        self.targety
+        self.msgtwist = Twist()
+        self.msgodometry = Odometry()
+    	
+        self.pub = rospy.Publisher("/cmd_vel",Twist,1000)
+        self.sub = rospy.Subscriber("/odom", Odometry, self.odomclbk)
+        
+        
+        
+        
+        
+        top = self.top = tk.Toplevel(master)
+        self.lbl = Label(top, text="Choose target",background="#6495ED")
+        self.lbl.pack()
+        self.btn1 = Button(top, text='1', command=self.order(1, 5), borderwidth=3, relief="solid", bg='#006600',fg='black')
+        self.btn2 = Button(top, text='2', command=self.order(-2, 7), borderwidth=3, relief="solid", bg='#006600',fg='black')
+        self.btn3 = Button(top, text='3', command=self.order(0, -3), borderwidth=3, relief="solid", bg='#006600',fg='black')
+        self.btn4 = Button(top, text='4', command=self.order(-2, -5), borderwidth=3, relief="solid", bg='#006600',fg='black')        
+        self.btn1.pack()
+        self.btn2.pack()
+        self.btn3.pack()
+        self.btn4.pack()
+        
+    def order(self,target_numx, target_numy):
+        self.targetx = target_numx
+        self.targety = target_numy
+        
+        
+        
+        #self.top.destroy()
+        
+    def odomclbk(self, msgodometry):
+        actualx = msgodometry.pose.pose.position.x
+        actualy = msgodometry.pose.pose.position.y
+    	
+        distance = sqrt(pow(self.targetx-actualx,2)+pow(self.targety-actualy,2) )
+
+        if (distance <= 0.1):
+            ROS_INFO("target reached")
+        msgtwist.linear.x = k*(self.targetx-actualx)
+        msgtwist.linear.y = k*(self.targety-actualy)
+        self.pub.publish(msgtwist)
+
 
 
 def compute_calibration(drPath, calib_duration, lbl_calib, num_joints, joints):
