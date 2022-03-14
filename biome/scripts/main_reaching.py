@@ -442,17 +442,17 @@ class ROS_window(object):
         top = self.top = tk.Toplevel(master)
         self.lbl = Label(top, text="Choose target",background="#6495ED")
         self.lbl.pack()
-        self.btn1 = Button(top, text='1', command=self.order(1, 5), borderwidth=3, relief="solid", bg='#006600',fg='black')
-        self.btn2 = Button(top, text='2', command=self.order(-2, 7), borderwidth=3, relief="solid", bg='#006600',fg='black')
+        self.btn1 = Button(top, text='1', command=lambda:self.order(1, 5), borderwidth=3, relief="solid", bg='#006600',fg='black')
+        self.btn2 = Button(top, text='2', command=lambda:self.order(-2, 7), borderwidth=3, relief="solid", bg='#006600',fg='black')
         
-        self.btn4 = Button(top, text='4', command=self.order(-2, -5), borderwidth=3, relief="solid", bg='#006600',fg='black')
-        self.btn3 = Button(top, text='3', command=self.order(0, -3), borderwidth=3, relief="solid", bg='#006600',fg='black') 
+        self.btn4 = Button(top, text='4', command=lambda:self.order(-2, -5), borderwidth=3, relief="solid", bg='#006600',fg='black')
+        self.btn3 = Button(top, text='3', command=lambda:self.order(0, -3), borderwidth=3, relief="solid", bg='#006600',fg='black') 
         self.btn5 = Button(top, text='close', command=self.cleanup, borderwidth=3, relief="solid", bg='#006600',fg='black')
 
-        #self.btn1.pack()
-        #self.btn2.pack()
-        #self.btn3.pack()
-        #self.btn4.pack()
+        self.btn1.pack()
+        self.btn2.pack()
+        self.btn3.pack()
+        self.btn4.pack()
         self.btn5.pack()
         
     def order(self,target_numx, target_numy):
