@@ -469,6 +469,7 @@ class ROS_window(object):
         k = 5
         actualx = msgodometry.pose.pose.position.x
         actualy = msgodometry.pose.pose.position.y
+        print ("actual position (x, y): ")
         print (actualx, actualy)
         distance = sqrt(pow(self.targetx-actualx,2)+pow(self.targety-actualy,2) )
 
