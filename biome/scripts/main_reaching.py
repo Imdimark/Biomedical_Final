@@ -5,6 +5,8 @@ import pandas as pd
 import os
 import time
 from math import sqrt
+
+# ROS imports
 import rospy
 import roslaunch
 from geometry_msgs.msg import Twist
@@ -414,6 +416,7 @@ class popupWindow(object):
     """
 
     def __init__(self, master, msg):
+        top = self.top = tk.Toplevel(master)
         self.lbl = Label(top, text=msg,background="#6495ED")
         self.lbl.pack()
         self.btn = Button(top, text='Ok', command=self.cleanup, borderwidth=3, relief="solid", bg='#006600',fg='black')
