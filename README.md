@@ -23,6 +23,9 @@ The ROS component will be launched when you choose the "ROS GAME" option.
 
 
 ### ROS game Behaviour
+
+![rosgraph](https://user-images.githubusercontent.com/78663960/159170794-b8ee8900-97d4-4e12-bd8d-e025b788a289.png)
+
 Two windows are opened:
 * the simulation environment by stage_ros
 * a button panel with 4 possible options
