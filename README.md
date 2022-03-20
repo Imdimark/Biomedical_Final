@@ -22,9 +22,7 @@ In order to make the project compliant to ROS the original project is splitted i
 The ROS component will be launched when you choose the "ROS GAME" option. 
 
 
-
-
-### Behaviour
+### ROS game Behaviour
 Two windows are opened:
 * the simulation environment by stage_ros
 * a button panel with 4 possible options
