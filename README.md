@@ -7,8 +7,8 @@ In order to make the project compliant to ROS the original project is splitted i
 ### Requirements
   * Al these requirements must be satisfied: https://github.com/MoroMatteo/markerlessBoMI_FaMa/blob/main/README.md 
   
-  The step 7 is different i our case, the repository must be this one.
-  We suggest to use a docker containerinstead of the virtual environment. In this case skip the step3 and step 4. 
+  In this case only the linux option must be used in order to be compliant to ROS and the step 7 is different in our case: the repository must be this one.
+  We don't recommend to use a docker container, it should create issues with the camera input. 
   
   * ROS workspace with inside the three packages that are inside this repository
  
