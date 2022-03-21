@@ -28,8 +28,8 @@ import pygame
 from my_python__common.reaching import Reaching
 from my_python__common.stopwatch import StopWatch
 from my_python__common.filter_butter_online import FilterButter3
-import my_python__common.reaching_functions
-import my_python__common.python_code
+import my_python__common.reaching_functions as reaching_functions
+import my_python__common.python_code as python_code
 # For controlling computer cursor
 import pyautogui
 # For Mediapipe
@@ -180,7 +180,7 @@ class MainApplication(tk.Frame):
         package = 'stage_ros'
         executable = 'stageros'
         #node = roslaunch.core.Node(package, executable, args='$(rospack find stage_ros)/world/willow-erratic.world')
-        node = roslaunch.core.Node(package, executable, args='/root/ros_ws/src/stage_ros/world/erratic-inc.world')
+        node = roslaunch.core.Node(package, executable, args='//home/iacopo/Desktop/ros_ws/src/stage_ros/world/erratic-inc.world')
 
         launch = roslaunch.scriptapi.ROSLaunch()
         launch.start()
