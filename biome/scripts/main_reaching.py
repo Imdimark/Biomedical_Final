@@ -159,27 +159,21 @@ class MainApplication(tk.Frame):
         self.check6.grid(row=4, column=2, padx=(0, 20), pady=(20, 30), sticky='nesw')
         
 
-        #############################################################
+
         #ROS button
         self.btn_ros = Button(parent, text="ROS game", command=self.ROS_game, borderwidth=3, relief="solid",bg='#CCCCFF',fg='black')
         self.btn_ros.config(font=("Arial", self.font_size))
         self.btn_ros.grid(row=8, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
-	#############################################################
+	
         self.btn_close = Button(parent, text="Close", command=parent.destroy, bg="#800000", borderwidth=3, relief="solid")
         self.btn_close.config(font=("Arial", self.font_size))
         self.btn_close.grid(row=9, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
 	
+    #ROS function it launchs the node stageros with the .world file as argument.
     def ROS_game(self):
-        '''uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-	roslaunch.configure_logging(uuid)
-	launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/haier/catkin_ws/src/testapi/launch/test_node.launch"])
-	launch.start()
-    	rospy.sleep(3)
-	# 3 seconds later
-	launch.shutdown()'''
+
         package = 'stage_ros'
         executable = 'stageros'
-        #node = roslaunch.core.Node(package, executable, args='$(rospack find stage_ros)/world/willow-erratic.world')
         node = roslaunch.core.Node(package, executable, args='//home/iacopo/Desktop/ros_ws/src/stage_ros/world/erratic-inc.world')
 
         launch = roslaunch.scriptapi.ROSLaunch()
@@ -187,9 +181,8 @@ class MainApplication(tk.Frame):
 
         process = launch.launch(node)
         print (process.is_alive())
-        #process.stop()
         
-        #apro finestra con i 4 punti
+        #opens window with 4 buttons
         self.w = ROS_window(self.master)
         self.w.top.configure(background="#6495ED")
         self.w.top.geometry("400x200")
@@ -438,6 +431,9 @@ class ROS_window(object):
         self.msgtwist = Twist()
         self.msgodometry = Odometry()
     	
+        #here the two way of communication with stageros are created.
+        #pub transports the velocity command that the cube must have and 
+        #sub its position (x, y) 
         self.pub = rospy.Publisher("/cmd_vel",Twist,1000)
         self.sub = rospy.Subscriber("/odom", Odometry, self.odomclbk)
         
@@ -445,11 +441,12 @@ class ROS_window(object):
         top = self.top = tk.Toplevel(master)
         self.lbl = Label(top, text="Choose target",background="#6495ED")
         self.lbl.pack()
+        #here 4 predefined positions are set as buttons, the last one close the panel
         self.btn1 = Button(top, text='1', command=lambda:self.order(1, 5), borderwidth=3, relief="solid", bg='#006600',fg='black')
         self.btn2 = Button(top, text='2', command=lambda:self.order(-2, 7), borderwidth=3, relief="solid", bg='#006600',fg='black')
         
-        self.btn4 = Button(top, text='4', command=lambda:self.order(-2, -5), borderwidth=3, relief="solid", bg='#006600',fg='black')
-        self.btn3 = Button(top, text='3', command=lambda:self.order(0, -3), borderwidth=3, relief="solid", bg='#006600',fg='black') 
+        self.btn4 = Button(top, text='3', command=lambda:self.order(-2, -5), borderwidth=3, relief="solid", bg='#006600',fg='black')
+        self.btn3 = Button(top, text='4', command=lambda:self.order(0, -3), borderwidth=3, relief="solid", bg='#006600',fg='black') 
         self.btn5 = Button(top, text='close', command=self.cleanup, borderwidth=3, relief="solid", bg='#006600',fg='black')
 
         self.btn1.pack()
@@ -459,16 +456,17 @@ class ROS_window(object):
         self.btn5.pack()
         
     def order(self,target_numx, target_numy):
+        #target_numx and target_numy are are respectively the x and y target
         self.targetx = target_numx
         self.targety = target_numy
         print ("Order")
     
     def cleanup(self):
         self.top.destroy()  
-        
-        #self.top.destroy()
+
         
     def odomclbk(self, msgodometry):
+        #odomclbk is the function that implements the reaching logic. Given a(x, y) target it sets the speed such that the distance tends to zero
         k = 5
         actualx = msgodometry.pose.pose.position.x
         actualy = msgodometry.pose.pose.position.y
